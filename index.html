@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meme Generator & Editor</title>
+    <style>
+        /* General Styling */
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #121212; /* Black background */
+            color: #f5f5f5; /* White text */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin: 0;
+        }
+
+        header p {
+            font-size: 1rem;
+            color: #aaaaaa; /* Light gray */
+            margin: 0;
+        }
+
+        main {
+            background-color: #1c1c1c; /* Slightly lighter black */
+            border-radius: 10px;
+            padding: 20px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.6);
+        }
+
+        #meme-container img {
+            max-width: 100%;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .dynamic-input {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        input {
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background-color: #222;
+            color: #f5f5f5;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #f5f5f5;
+        }
+
+        button {
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            background-color: #444;
+            color: white;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #666;
+        }
+
+        footer {
+            margin-top: 20px;
+            font-size: 0.8rem;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Meme Generator & Editor</h1>
+        <p>Minimalistic and dynamic meme creation!</p>
+    </header>
+
+    <main>
+        <div id="meme-container"></div>
+        
+        <form id="meme-form">
+            <div id="dynamic-inputs"></div>
+            <button type="button" onclick="generateMeme()">Generate Meme</button>
+            <button type="button" onclick="editMeme()">Edit Meme</button>
+            <button type="button" onclick="downloadMeme()">Download Meme</button>
+        </form>
+    </main>
+
+    <footer>
+        <p>&copy; 2024 All rights reserved. Renao</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        let currentSegments = [];
+        let editableTemplate = "";
+
+        // Fetch random meme template
+        const getRandomMemeTemplate = async () => {
+            try {
+                const response = await axios.get('https://api.memegen.link/images/');
+                const memes = response.data;
+                const randomIndex = Math.floor(Math.random() * memes.length);
+                return memes[randomIndex].url; // Full meme URL
+            } catch (error) {
+                console.error("Error fetching meme template:", error);
+                alert("Failed to fetch meme template. Using fallback.");
+                return "https://api.memegen.link/images/buzz/your_text_here/your_text_here.jpg"; // Fallback template
+            }
+        };
+
+        // Parse URL into editable segments
+        const parseEditableSegments = (url) => {
+            const parts = url.split("/").slice(4); // Extract parts after `images/`
+            const segments = parts.slice(1, parts.length ); // Editable text segments
+            editableTemplate = parts[0]; // Template name
+            return segments.map(segment => decodeURIComponent(segment)); // Decode URL segments
+        };
+
+        // Function to dynamically create input fields based on URL segments
+        const updateDynamicInputs = () => {
+            const dynamicInputs = document.getElementById('dynamic-inputs');
+            dynamicInputs.innerHTML = ""; // Clear existing inputs
+
+            currentSegments.forEach((segment, index) => {
+                const inputGroup = document.createElement('div');
+                inputGroup.className = 'dynamic-input';
+                inputGroup.innerHTML = `
+                    <label for="segment-${index}">Text ${index + 1}</label>
+                    <input type="text" id="segment-${index}" value="${segment === '_' ? '' : segment}" />
+                `;
+                dynamicInputs.appendChild(inputGroup);
+            });
+        };
+
+        // Generate meme
+        const generateMeme = async () => {
+            const memeContainer = document.getElementById('meme-container');
+            const templateUrl = await getRandomMemeTemplate();
+
+            // Parse editable segments
+            currentSegments = parseEditableSegments(templateUrl);
+
+            // Generate initial meme URL
+            const memeUrl = `https://api.memegen.link/images/${editableTemplate}/${currentSegments.join("/")}.jpg`;
+
+            memeContainer.innerHTML = `<img src="${memeUrl}" alt="Generated Meme">`;
+
+            // Update input fields
+            updateDynamicInputs();
+        };
+
+        // Edit meme
+        const editMeme = () => {
+            if (!editableTemplate) {
+                alert("No meme generated yet!");
+                return;
+            }
+
+            const memeContainer = document.getElementById('meme-container');
+
+            // Get updated text from inputs
+            const inputs = document.querySelectorAll('#dynamic-inputs input');
+            currentSegments = Array.from(inputs).map(input => encodeURIComponent(input.value.trim() || "_"));
+
+            // Generate updated meme URL
+            const memeUrl = `https://api.memegen.link/images/${editableTemplate}/${currentSegments.join("/")}.jpg`;
+
+            // Update meme
+            memeContainer.innerHTML = `<img src="${memeUrl}" alt="Edited Meme">`;
+        };
+
+        // Download meme
+// Download meme directly in the browser
+const downloadMeme = () => {
+    const memeContainer = document.getElementById('meme-container');
+    const memeImg = memeContainer.querySelector('img');
+
+    if (!memeImg) {
+        alert("No meme to download!");
+        return;
+    }
+
+    const link = document.createElement('a');
+    link.href = memeImg.src;  // Use the current meme image URL
+    link.download = 'meme.jpg';  // Set the default filename (you can change this)
+    link.style.display = 'none';  // Hide the link (it won't be visible in the UI)
+    document.body.appendChild(link);  // Append the link to the body
+    link.click();  // Trigger the download by programmatically clicking the link
+    document.body.removeChild(link);  // Remove the link from the DOM after triggering the download
+};
+
+    </script>
+</body>
+</html>
