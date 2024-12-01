@@ -84,21 +84,22 @@
 
         .password-container {
             position: relative;
-            display: flex;
-            align-items: center;
-        }
-
-        .password-container input {
-            flex: 1;
-            padding-right: 30px;
         }
 
         .toggle-password {
             position: absolute;
+            top: 50%;
             right: 10px;
+            transform: translateY(-50%);
             cursor: pointer;
             color: #888;
             font-size: 1rem;
+            background: none;
+            border: none;
+        }
+
+        .toggle-password:focus {
+            outline: none;
         }
 
         button {
@@ -133,7 +134,9 @@
 </head>
 <body>
     <header>
-        <div id="logo">MG</div>
+        <div id="logo">
+            <img src="../S.jpg" alt="Logo" style="height:100px;width:100px;border-radius:50%;">
+        </div>
         <h1>Meme Generator</h1>
     </header>
 
@@ -143,17 +146,18 @@
             <input type="email" id="email" placeholder="Email" required>
             <div class="password-container">
                 <input type="password" id="password" placeholder="Password" required>
-                <span class="toggle-password" onclick="togglePasswordVisibility('password')">👁️</span>
+                <button type="button" class="toggle-password" aria-label="Toggle password visibility" onclick="togglePasswordVisibility('password')">👁️</button>
             </div>
             <div id="confirm-password-container" class="password-container" style="display: none;">
                 <input type="password" id="confirm-password" placeholder="Confirm Password">
-                <span class="toggle-password" onclick="togglePasswordVisibility('confirm-password')">👁️</span>
+                <button type="button" class="toggle-password" aria-label="Toggle confirm password visibility" onclick="togglePasswordVisibility('confirm-password')">👁️</button>
             </div>
             <p id="error-message" class="error"></p>
             <button type="submit" id="submit-btn">Login</button>
         </form>
         <p id="auth-switch">Don't have an account? <span id="switch-auth">Sign Up</span></p>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.5/dist/js.cookie.min.js"></script>
 
     <script>
         let isLogin = true;
@@ -161,7 +165,6 @@
         const authTitle = document.getElementById("auth-title");
         const authForm = document.getElementById("auth-form");
         const submitBtn = document.getElementById("submit-btn");
-        const switchAuthText = document.getElementById("auth-switch");
         const switchAuthBtn = document.getElementById("switch-auth");
         const confirmPasswordContainer = document.getElementById("confirm-password-container");
         const errorMessage = document.getElementById("error-message");
@@ -172,21 +175,19 @@
             input.type = input.type === "password" ? "text" : "password";
         };
 
-        // Function to toggle between Login and Sign Up
+        // Toggle between Login and Sign Up modes
         const toggleAuth = () => {
             isLogin = !isLogin;
             authTitle.innerText = isLogin ? "Login" : "Sign Up";
             submitBtn.innerText = isLogin ? "Login" : "Sign Up";
             confirmPasswordContainer.style.display = isLogin ? "none" : "flex";
-            switchAuthText.innerHTML = isLogin
-                ? "Don't have an account? <span id='switch-auth'>Sign Up</span>"
-                : "Already have an account? <span id='switch-auth'>Login</span>";
+            switchAuthBtn.innerText = isLogin ? "Sign Up" : "Login";
         };
 
-        // Add event listener to switch button
+        // Switch modes when the toggle button is clicked
         switchAuthBtn.addEventListener("click", toggleAuth);
 
-        // Form submit validation and API call
+        // Form submission handler
         authForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             errorMessage.innerText = "";
@@ -194,6 +195,11 @@
             const email = document.getElementById("email").value;
             const password = document.getElementById("password").value;
             const confirmPassword = isLogin ? null : document.getElementById("confirm-password").value;
+
+            if (!isLogin && password !== confirmPassword) {
+                errorMessage.innerText = "Passwords do not match!";
+                return;
+            }
 
             try {
                 const endpoint = isLogin ? "/login" : "/signup";
@@ -211,18 +217,16 @@
 
                 if (isLogin) {
                     alert("Login successful! Token: " + data.token);
+                    Cookies.set("token", data.token);
+
+
                 } else {
                     alert("Signup successful! Please log in.");
-                    toggleAuth();
+                    toggleAuth(); // Switch to login mode
                 }
             } catch (error) {
                 errorMessage.innerText = error.message;
             }
-        });
-
-        // Fix button reassign issue on innerHTML update
-        document.addEventListener("click", (e) => {
-            if (e.target.id === "switch-auth") toggleAuth();
         });
     </script>
 </body>
