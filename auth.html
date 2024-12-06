@@ -203,7 +203,7 @@
 
             try {
                 const endpoint = isLogin ? "/login" : "/signup";
-                const response = await fetch(`http://localhost:3000${endpoint}`, {
+                const response = await fetch(`https://meme-generator-6p8s.onrender.com/${endpoint}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ email, password, confirmPassword }),
@@ -231,3 +231,4 @@
     </script>
 </body>
 </html>
+
