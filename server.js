@@ -12,7 +12,7 @@ const app = express();
 // Constants
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = "your_secret_key"; // Replace with a strong secret key
-const CLIENT_URL = "http://localhost:3000"; // Change this to your frontend URL if it's deployed
+const CLIENT_URL = "https://meme-generator-6p8s.onrender.com"; // Change this to your frontend URL if it's deployed
 
 // Middleware setup
 app.use(bodyParser.json());
