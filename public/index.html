@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meme Generator & Editor</title>
+    <style>
+        /* General Styling */
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            color: #f5f5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 50px;
+            min-height: 100vh;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        main {
+            background-color: #1c1c1c;
+            border-radius: 10px;
+            padding: 20px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.6);
+        }
+        #meme-container img {
+            max-width: 100%;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .dynamic-input {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        input {
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background-color: #222;
+            color: #f5f5f5;
+        }
+        input:focus {
+            border-color: #f5f5f5;
+        }
+        button {
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            background-color: #444;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #666;
+        }
+        footer {
+            margin-top: 20px;
+            font-size: 0.8rem;
+            color: #888;
+        }
+        #saved-memes {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        #saved-memes img {
+            margin: 5px;
+            width: 150px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Meme Generator & Editor</h1>
+        <p>Minimalistic and dynamic meme creation!</p>
+    </header>
+    <main>
+        <div id="meme-container"></div>
+        <form id="meme-form">
+            <div id="dynamic-inputs"></div>
+            <button type="button" onclick="generateMeme()">Generate Meme</button>
+            <button type="button" onclick="editMeme()">Edit Meme</button>
+            <button type="button" onclick="downloadMeme()">Download Meme</button>
+            <button type="button" onclick="saveMeme()">Save Meme</button>
+        </form>
+        <div id="saved-memes"></div>
+        <button type="button" onclick="showSavedMemes()">Show Saved Memes</button>
+    </main>
+    <footer>
+        <p>&copy; 2024 All rights reserved. Renao</p>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        let currentSegments = [];
+        let editableTemplate = "";
+        let generatedMemeUrl = ""; // Variable to store the generated meme URL
+
+        const showLoading = () => {
+            const loadingOverlay = document.createElement("div");
+            loadingOverlay.id = "loading-overlay";
+            loadingOverlay.style.position = "fixed";
+            loadingOverlay.style.top = "0";
+            loadingOverlay.style.left = "0";
+            loadingOverlay.style.width = "100%";
+            loadingOverlay.style.height = "100%";
+            loadingOverlay.style.backgroundColor = "rgba(0, 0, 0, 0.8)";
+            loadingOverlay.style.color = "#f5f5f5";
+            loadingOverlay.style.display = "flex";
+            loadingOverlay.style.alignItems = "center";
+            loadingOverlay.style.justifyContent = "center";
+            loadingOverlay.style.fontSize = "1.5rem";
+            loadingOverlay.style.zIndex = "9999";
+            loadingOverlay.innerText = "Loading...";
+            document.body.appendChild(loadingOverlay);
+        };
+
+        const hideLoading = () => {
+            const loadingOverlay = document.getElementById("loading-overlay");
+            if (loadingOverlay) {
+                document.body.removeChild(loadingOverlay);
+            }
+        };
+
+        const getRandomMemeTemplate = async () => {
+            try {
+                const response = await axios.get('https://api.memegen.link/images/');
+                const memes = response.data;
+                const randomIndex = Math.floor(Math.random() * memes.length);
+                return memes[randomIndex].url;
+            } catch (error) {
+                console.error("Error fetching meme template:", error);
+                alert("Failed to fetch meme template. Using fallback.");
+                return "https://api.memegen.link/images/buzz/your_text_here/your_text_here.jpg";
+            }
+        };
+
+        const parseEditableSegments = (url) => {
+            const parts = url.split("/").slice(4);
+            const segments = parts.slice(1);
+            editableTemplate = parts[0];
+            return segments.map(segment => decodeURIComponent(segment));
+        };
+
+        const updateDynamicInputs = () => {
+            const dynamicInputs = document.getElementById('dynamic-inputs');
+            dynamicInputs.innerHTML = "";
+
+            currentSegments.forEach((segment, index) => {
+                const inputGroup = document.createElement('div');
+                inputGroup.className = 'dynamic-input';
+                inputGroup.innerHTML = ` 
+                    <label for="segment-${index}">Text ${index + 1}</label>
+                    <input type="text" id="segment-${index}" value="${segment === '_' ? '' : segment}" />
+                `;
+                dynamicInputs.appendChild(inputGroup);
+            });
+        };
+
+        const generateMeme = async () => {
+            showLoading();
+
+            const memeContainer = document.getElementById('meme-container');
+            const templateUrl = await getRandomMemeTemplate();
+
+            currentSegments = parseEditableSegments(templateUrl);
+
+            generatedMemeUrl = `https://api.memegen.link/images/${editableTemplate}/${currentSegments.join("/")}.jpg`;
+
+            console.log("Generated Meme URL:", generatedMemeUrl);  // Log the URL to the console
+
+            const img = new Image();
+            img.src = generatedMemeUrl;
+            img.onload = () => {
+                memeContainer.innerHTML = `<img src="${generatedMemeUrl}" alt="Generated Meme">`;
+                updateDynamicInputs();
+                hideLoading();
+            };
+        };
+
+        const editMeme = () => {
+            if (!editableTemplate) {
+                alert("No meme generated yet!");
+                return;
+            }
+
+            showLoading();
+
+            const memeContainer = document.getElementById('meme-container');
+
+            const inputs = document.querySelectorAll('#dynamic-inputs input');
+            currentSegments = Array.from(inputs).map(input => encodeURIComponent(input.value.trim() || "_"));
+
+            generatedMemeUrl = `https://api.memegen.link/images/${editableTemplate}/${currentSegments.join("/")}.jpg`;
+
+            console.log("Edited Meme URL:", generatedMemeUrl);  // Log the URL to the console
+
+            const img = new Image();
+            img.src = generatedMemeUrl;
+            img.onload = () => {
+                memeContainer.innerHTML = `<img src="${generatedMemeUrl}" alt="Edited Meme">`;
+                updateDynamicInputs();
+                hideLoading();
+            };
+        };
+
+
+        const saveMeme = async () => {
+        if (!generatedMemeUrl) {
+            alert("No meme to save!");
+            return;
+        }
+
+        try {
+            // Save meme URL to database
+            await axios.post('/save-meme-url', { memeUrl: generatedMemeUrl });
+            console.log(generatedMemeUrl)
+            alert("Meme saved to database!");
+        } catch (error) {
+            console.error("Error saving meme to database:", error);
+            alert("Failed to save meme.");
+        }
+    };
+
+    const showSavedMemes = async () => {
+  try {
+    const response = await axios.get('/get-saved-memes');
+    console.log("Saved Memes:", response.data);  // Log the response to check if memes exist
+
+    const savedMemesContainer = document.getElementById('saved-memes');
+    savedMemesContainer.innerHTML = ''; // Clear previous saved memes
+
+    // Check if the response contains saved memes
+    if (response.data.length === 0) {
+      savedMemesContainer.innerHTML = "No saved memes found.";
+    }
+
+    response.data.forEach(meme => {
+      const img = document.createElement('img');
+      img.src = meme;  // Ensure that meme.url exists and is valid
+      console.log(meme)
+      img.alt = "Saved Meme";
+      savedMemesContainer.appendChild(img);
+    });
+  } catch (error) {
+    console.error("Error fetching saved memes:", error);
+    alert("Failed to fetch saved memes.");
+  }
+};
+
+
+        const downloadMeme = () => {
+            if (!generatedMemeUrl) {
+                alert("No meme to download!");
+                return;
+            }
+
+            // Log when download is pressed
+            console.log("Download Meme button pressed. URL:", generatedMemeUrl);
+
+            const link = document.createElement('a');
+            link.href = generatedMemeUrl;
+            link.download = 'meme.jpg';
+            link.style.display = 'none';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
+
+    </script>
+</body>
+</html>
