@@ -4,17 +4,27 @@ const jwt = require("jsonwebtoken");
 const bodyParser = require("body-parser");
 const crypto = require("crypto");
 const cookieParser = require("cookie-parser"); // Import cookie-parser
+const cors = require("cors"); // Import CORS middleware
 const User = require("./models/User");
 const path = require("path");
 const app = express();
 
-const PORT = 3000;
+// Constants
+const PORT = process.env.PORT || 3000;
 const JWT_SECRET = "your_secret_key"; // Replace with a strong secret key
+const CLIENT_URL = "http://localhost:3000"; // Change this to your frontend URL if it's deployed
 
-// Middleware
+// Middleware setup
 app.use(bodyParser.json());
 app.use(cookieParser()); // Use cookie-parser middleware
-app.use(express.static(path.join(__dirname, "public"))); // Serve static files like auth.html, index.html
+app.use(cors({
+  origin: CLIENT_URL, // Frontend URL
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true, // Allow cookies to be sent
+}));
+
+// Serve static files (for auth.html, index.html)
+app.use(express.static(path.join(__dirname, "public")));
 
 // MongoDB Connection
 mongoose
@@ -112,7 +122,11 @@ app.post("/login", async (req, res) => {
       });
 
       // Set the token in cookies
-      res.cookie("token", token, { httpOnly: true, secure: true }); // Use secure:true for HTTPS
+      res.cookie("token", token, { 
+        httpOnly: true, 
+        secure: process.env.NODE_ENV === 'production', // Make sure cookies are secure in production
+        sameSite: 'Strict',
+      });
 
       res.status(200).json({ message: "Login successful!" });
     } else {
