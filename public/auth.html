@@ -17,7 +17,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 86vh;
+            height: 87vh;
         }
 
         header {
@@ -130,18 +130,12 @@
             color: #e74c3c;
             text-align: left;
         }
-        #password{
-            width: 94%;
-        }
-        #confirm-password{
-            width: 94%;
-        }
     </style>
 </head>
 <body>
     <header>
         <div id="logo">
-            <img src="S.png" alt="Logo" style="height:100px;width:100px;border-radius:50%;">
+            <img src="../S.jpg" alt="Logo" style="height:100px;width:100px;border-radius:50%;">
         </div>
         <h1>Meme Generator</h1>
     </header>
@@ -163,6 +157,10 @@
         </form>
         <p id="auth-switch">Don't have an account? <span id="switch-auth">Sign Up</span></p>
     </div>
+
+    <!-- Axios CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- JS Cookie -->
     <script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.5/dist/js.cookie.min.js"></script>
 
     <script>
@@ -174,6 +172,9 @@
         const switchAuthBtn = document.getElementById("switch-auth");
         const confirmPasswordContainer = document.getElementById("confirm-password-container");
         const errorMessage = document.getElementById("error-message");
+
+        // Backend API base URLshould work
+        const API_BASE_URL = "https://meme-generator-mnft.onrender.com";
 
         // Function to toggle password visibility
         const togglePasswordVisibility = (id) => {
@@ -195,50 +196,39 @@
 
         // Form submission handler
         authForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    errorMessage.innerText = "";
+            e.preventDefault();
+            errorMessage.innerText = "";
 
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
-    const confirmPassword = isLogin ? null : document.getElementById("confirm-password").value;
-console.log("chal rha he")
-    if (!isLogin && password !== confirmPassword) {
-        errorMessage.innerText = "Passwords do not match!";
-        return;
-    }
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+            const confirmPassword = isLogin ? null : document.getElementById("confirm-password").value;
 
-    try {
-        const endpoint = isLogin ? "/login" : "/signup";
-        const response = await fetch(`http://localhost:3000${endpoint}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password, confirmPassword }),
+            if (!isLogin && password !== confirmPassword) {
+                errorMessage.innerText = "Passwords do not match!";
+                return;
+            }
+
+            try {
+                const endpoint = isLogin ? "/login" : "/signup";
+                const response = await axios.post(`${API_BASE_URL}${endpoint}`, {
+                    email,
+                    password,
+                    confirmPassword: !isLogin ? confirmPassword : undefined, // Include confirmPassword only during signup
+                });
+console.log(API_BASE_URL+enpoint)
+                const data = response.data;
+
+                if (isLogin) {
+                    alert("Login successful! Token: " + data.token);
+                    Cookies.set("token", data.token); // Save token in cookies
+                } else {
+                    alert("Signup successful! Please log in.");
+                    toggleAuth(); // Switch to login mode
+                }
+            } catch (error) {
+                errorMessage.innerText = error.response?.data?.message || "Something went wrong";
+            }
         });
-
-        const data = await response.json();
-        console.log(data); // Debugging: Inspect response data
-
-        if (!response.ok) {
-            throw new Error(data.message || "Something went wrong");
-        }
-        Cookies.set("token", data.token, { expires: 7 }); // Save token in cookies
-        // For successful login
-        if (isLogin && response.ok) {
-    console.log("Login successful", data.token);
-    Cookies.set("token", data.token, { expires: 7 }); // Save token in cookies
-    window.location.href = "index.html"; // Redirect to index.html
-} else if (!isLogin && response.ok) {
-    console.log("Signup successful");
-    alert("Signup successful! Please log in.");
-    toggleAuth(); // Switch to login mode
-}
-
-    } catch (error) {
-        console.error("Error:", error);
-        errorMessage.innerText = error.message;
-    }
-});
-
     </script>
 </body>
 </html>
