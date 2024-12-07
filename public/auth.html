@@ -130,9 +130,18 @@
             color: #e74c3c;
             text-align: left;
         }
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 10;
+        }
     </style>
 </head>
 <body>
+    <canvas id="sparkleCanvas"></canvas>
     <header>
         <div id="logo">
             <img src="../S.jpg" alt="Logo" style="height:100px;width:100px;border-radius:50%;">
@@ -166,6 +175,48 @@
     <script>
         let isLogin = true;
 
+        const canvas = document.getElementById("sparkleCanvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        function createSparkles() {
+            let sparkles = [];
+            for (let i = 0; i < 100; i++) {
+                sparkles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 2,
+                    opacity: Math.random(),
+                });
+            }
+            return sparkles;
+        }
+
+        function drawSparkles(sparkles) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            sparkles.forEach((sparkle) => {
+                ctx.beginPath();
+                ctx.arc(sparkle.x, sparkle.y, sparkle.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 255, 255, ${sparkle.opacity})`;
+                ctx.fill();
+            });
+        }
+
+        function animateSparkles(sparkles, duration = 2000) {
+            const startTime = Date.now();
+            function animate() {
+                const elapsed = Date.now() - startTime;
+                if (elapsed > duration) return;
+                sparkles.forEach((sparkle) => {
+                    sparkle.opacity -= 0.01;
+                });
+                drawSparkles(sparkles);
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
         const authTitle = document.getElementById("auth-title");
         const authForm = document.getElementById("auth-form");
         const submitBtn = document.getElementById("submit-btn");
@@ -173,16 +224,13 @@
         const confirmPasswordContainer = document.getElementById("confirm-password-container");
         const errorMessage = document.getElementById("error-message");
 
-        // Backend API base URLshould work
         const API_BASE_URL = "https://meme-generator-mnft.onrender.com";
 
-        // Function to toggle password visibility
         const togglePasswordVisibility = (id) => {
             const input = document.getElementById(id);
             input.type = input.type === "password" ? "text" : "password";
         };
 
-        // Toggle between Login and Sign Up modes
         const toggleAuth = () => {
             isLogin = !isLogin;
             authTitle.innerText = isLogin ? "Login" : "Sign Up";
@@ -191,10 +239,8 @@
             switchAuthBtn.innerText = isLogin ? "Sign Up" : "Login";
         };
 
-        // Switch modes when the toggle button is clicked
         switchAuthBtn.addEventListener("click", toggleAuth);
 
-        // Form submission handler
         authForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             errorMessage.innerText = "";
@@ -213,21 +259,35 @@
                 const response = await axios.post(`${API_BASE_URL}${endpoint}`, {
                     email,
                     password,
-                    confirmPassword: !isLogin ? confirmPassword : undefined, // Include confirmPassword only during signup
+                    confirmPassword: !isLogin ? confirmPassword : undefined,
                 });
 
                 const data = response.data;
 
                 if (isLogin) {
                     alert("Login successful! Token: " + data.token);
-                    Cookies.set("token", data.token); // Save token in cookies
+                    Cookies.set("token", data.token);
                 } else {
-                    alert("Signup successful! Please log in.");
-                    toggleAuth(); // Switch to login mode
+                    alert("Signup successful!");
+                    const sparkles = createSparkles();
+                    drawSparkles(sparkles);
+                    animateSparkles(sparkles);
+                    setTimeout(() => {
+                        toggleAuth();
+                    }, 2000);
                 }
             } catch (error) {
-                errorMessage.innerText = error.response?.data?.message || "Something went wrong";
+                errorMessage.innerText = "An error occurred. Please try again.";
+                console.error("Error during authentication:", error);
             }
+        });
+
+        // Adjust canvas size on window resize
+        window.addEventListener("resize", () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            const sparkles = createSparkles();
+            drawSparkles(sparkles);
         });
     </script>
 </body>
