@@ -24,10 +24,14 @@ app.use(cors({
 
 app.use(express.static(path.join(__dirname, "public")));
 
-mongoose.connect(MONGO_URI).then(() => console.log("MongoDB connected")).catch((err) => console.log(err));
+// Connect to MongoDB
+mongoose.connect(MONGO_URI)
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.log("MongoDB connection error:", err));
 
+// Middleware to verify JWT token
 const verifyToken = async (req, res, next) => {
-  const token = req.cookies.token;
+  const token = req.cookies.token; // Get token from cookies
   if (!token) return res.status(401).json({ message: "No token provided" });
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
@@ -40,6 +44,7 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
+// Routes
 app.get("/", verifyToken, (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
@@ -69,14 +74,23 @@ app.post("/login", async (req, res) => {
   try {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found!" });
+
+    // Verify password
     const hashedPassword = crypto.pbkdf2Sync(password, user.passwordSalt, 10000, 64, "sha512").toString("hex");
-    if (user.password === hashedPassword) {
-      const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "100h" });
-      res.cookie("token", token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "Strict" });
-      res.status(200).json({ message: "Login successful!" });
-    } else {
-      res.status(401).json({ message: "Invalid credentials!" });
-    }
+    if (user.password !== hashedPassword) return res.status(401).json({ message: "Invalid credentials!" });
+
+    // Generate JWT
+    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "100h" });
+
+    // Set token in cookies
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "Strict" : "Lax",
+    });
+
+    // Send response
+    res.status(200).json({ message: "Login successful!", token });
   } catch (err) {
     res.status(500).json({ message: "Error logging in", error: err.message });
   }
