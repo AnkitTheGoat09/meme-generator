@@ -116,6 +116,8 @@ app.get("/get-saved-memes", verifyToken, async (req, res) => {
   }
 });
 
+
+ // change the route to Express router
 app.listen(PORT, () => {
   console.log(`Server running at port ${PORT}`);
 });
