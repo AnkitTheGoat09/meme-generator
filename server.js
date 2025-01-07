@@ -32,6 +32,7 @@ mongoose.connect(MONGO_URI)
 // Middleware to verify JWT token
 const verifyToken = async (req, res, next) => {
   const token = req.cookies.token; // Get token from cookies
+// Token returns null { Fix }
   if (!token) return res.status(401).json({ message: "No token provided" });
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
